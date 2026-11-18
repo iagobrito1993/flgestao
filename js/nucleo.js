@@ -6,7 +6,8 @@ const SUPABASE_KEY='sb_publishable__IZIszN0QheZChaDwqVA8A_vlQnP9tw';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const PAPEIS={master:'Administrador master',financeiro:'Financeiro',compras:'Compras',estoque:'Estoque',operacao:'Operação'};
-const LOGO_SVG=`<svg width="26" height="26" viewBox="0 0 64 64"><text x="32" y="43" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="30" fill="#fff">FL</text></svg>`;
+const LOGO_SVG=`<svg width="40" height="40" viewBox="0 0 64 64" aria-label="FL Gestão"><rect width="64" height="64" rx="14" fill="#0a0a0a"/><rect x="4.5" y="4.5" width="55" height="55" rx="10.5" fill="none" stroke="#fff" stroke-opacity=".32"/><text x="32" y="39" text-anchor="middle" font-family="'Playfair Display',Georgia,'Times New Roman',serif" font-weight="700" font-size="29" letter-spacing="-1" fill="#fff">FL</text><path d="M21 46.5h22" stroke="#fff" stroke-width="1.2" stroke-opacity=".75"/><circle cx="32" cy="46.5" r="1.6" fill="#fff"/></svg>`;
+const LOGO_GRANDE=`<svg width="72" height="72" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0a0a0a"/><rect x="4.5" y="4.5" width="55" height="55" rx="10.5" fill="none" stroke="#fff" stroke-opacity=".32"/><text x="32" y="36" text-anchor="middle" font-family="'Playfair Display',Georgia,'Times New Roman',serif" font-weight="700" font-size="27" letter-spacing="-1" fill="#fff">FL</text><path d="M20 42.5h24" stroke="#fff" stroke-width="1" stroke-opacity=".7"/><circle cx="32" cy="42.5" r="1.4" fill="#fff"/><text x="32" y="52" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="5" letter-spacing="2.2" fill="#fff" fill-opacity=".85">GESTÃO</text></svg>`;
 // [id, rótulo, papéis que veem (vazio = todos)]
 const AREAS=[
  ['visao','Visão geral',['financeiro','compras','operacao']],
@@ -106,7 +107,7 @@ function detalhar(titulo,explicacao,cols,linhas,opc={}){
 // ---------- login ----------
 function telaLogin(msg,ok){
   const cad=modoLogin==='criar',rec=modoLogin==='esqueci';
-  $('raiz').innerHTML=`<div class="login"><div class="logo">${LOGO_SVG}</div><h1>FL Gestão</h1>
+  $('raiz').innerHTML=`<div class="login"><div class="logo-g">${LOGO_GRANDE}</div><h1 class="marca-t">FL Gestão</h1>
   <div class="sub">${cad?'Crie seu acesso. O administrador libera o seu perfil.':rec?'Enviaremos um link para criar uma nova senha.':'Entre com seu e-mail e senha.'}</div>
   <form id="fl">${cad?'<div class="campo"><label>Seu nome</label><input id="l_nome" required></div>':''}
   <div class="campo"><label>E-mail</label><input id="l_email" type="email" autocomplete="email" required></div>
@@ -124,7 +125,7 @@ function telaLogin(msg,ok){
     }catch(err){$('l_erro').textContent=/Invalid login/i.test(err.message)?'E-mail ou senha incorretos.':msgErro(err);b.disabled=false;}};
 }
 function telaPendente(){
-  $('raiz').innerHTML=`<div class="login"><div class="logo">${LOGO_SVG}</div><h1>FL Gestão</h1><div class="sub">Olá, ${esc(perfil?.nome||sessao.user.email)}.</div>
+  $('raiz').innerHTML=`<div class="login"><div class="logo-g">${LOGO_GRANDE}</div><h1 class="marca-t">FL Gestão</h1><div class="sub">Olá, ${esc(perfil?.nome||sessao.user.email)}.</div>
   <p>Seu acesso foi criado e aguarda liberação do administrador.</p><button class="pri" onclick="carregarPerfil()">Verificar de novo</button>
   <div class="alt"><button class="lk" onclick="sb.auth.signOut()">Sair</button></div></div>`;
 }
@@ -158,7 +159,7 @@ async function carregarRef(){
 // ---------- navegação ----------
 function areasDoPapel(){return AREAS.filter(a=>master()||!a[2].length||a[2].includes(papel()));}
 function montar(){
-  $('raiz').innerHTML=`<div class="app"><aside class="lado" id="lado"><div class="marca"><div class="logo">${LOGO_SVG}</div><div><b>FL Gestão</b><small>Roca Imports · FL Adega</small></div></div>
+  $('raiz').innerHTML=`<div class="app"><aside class="lado" id="lado"><div class="marca"><div class="logo">${LOGO_SVG}</div><div><b class="marca-t">FL Gestão</b><small>Roca Imports · FL Adega</small></div></div>
    <nav id="nav"></nav></aside>
    <div class="principal"><div class="topo"><div style="display:flex;gap:10px;align-items:center"><button class="menu-mob sm" onclick="$('lado').classList.toggle('aberto')">☰</button><h1 id="titulo"></h1></div>
    <div class="quem"><span>${esc(perfil.nome||perfil.email)} · ${PAPEIS[perfil.papel]}</span><button class="sm" onclick="sb.auth.signOut()">Sair</button></div></div>
