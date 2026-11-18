@@ -17,6 +17,19 @@ Endereço: https://flgestao.com.br (GitHub Pages) · Banco: Supabase (projeto da
 - Reimportação/ressincronização não duplica (chave `origem + origem_ref`).
 - Permissões: master, financeiro, compras, estoque, operação (caixa e expedição).
 
+## Operações (Parte 2 — `supabase/schema_operacoes.sql`, rodar depois de `schema.sql`)
+- **Início**: cada usuário vê só as operações liberadas.
+- **Roca Imports** (perfil Operacional Roca): produtos por SKU (sem duplicar), recebimento com entregas parciais, estoque por local e conta (físico, reservado, disponível, em trânsito, pendente de conferência) com histórico, remessas para São Paulo e para o Full (separação reserva, saída põe em trânsito, chegada registra o recebido e deixa a diferença pendente de conferência). Cliques repetidos não duplicam movimentação.
+- **FL Adega → Abrir PDV** (perfil Operador de PDV): busca por nome/SKU/código de barras com preço e disponível em Cuiabá, desconto só com permissão, troco no dinheiro, venda + pagamento + baixa numa única operação com chave anti-duplicidade, resumo da venda, fechamento de caixa por forma de pagamento, cancelamento com permissão e motivo (estorno único).
+- **Conciliação** (Financeiro): importar arquivo de vendas (CSV/XLSX, com mapeamento de colunas, prévia e erro por linha) e extrato bancário (CSV/OFX); reimportação/sobreposição não duplica; conferência dos repasses (vínculo automático só por identificador; valor igual vira sugestão com confirmação manual + anexo/justificativa); Ganho em R$ e Margem (%) com base explícita e detalhamento.
+- **Usuários e permissões** (Administrador): convidar por e-mail, perfil, operações, permissões específicas (custo, desconto, cancelamento), ativar/desativar. Tudo validado no banco (RLS + funções).
+- "Vendas e Marketplace" saiu do menu; o histórico continua em Conciliação → Histórico de vendas.
+
+## Testes
+- `node tests/conc_logic.test.js` — leitura de arquivos, datas/valores BR, OFX, sugestões de conciliação e margem.
+- `tests/db_cenarios.sql` + `tests/concorrencia_pdv.sh` — cenários do roteiro direto no banco (base de teste local).
+- `tests/ui/run.sh` — testes de ponta a ponta pela interface (Chrome headless) contra a base de teste local, com cliente Supabase simulado e RLS ativo.
+
 ## Fases
 1. Fundação: domínio, login, empresas, produtos, estoque, caixa da loja, expedição, ML. **(esta)**
 2. Amazon (SP-API) e Shopee (Open Platform) conectados; etiquetas.

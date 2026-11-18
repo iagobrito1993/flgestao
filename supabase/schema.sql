@@ -87,7 +87,7 @@ insert into fl_unidades(empresa_id,nome) select id,'FL Adega — Online' from fl
 insert into fl_unidades(empresa_id,nome) select id,'FL Adega — Loja Cuiabá' from fl_empresas e where nome='FL Adega'
   and not exists (select 1 from fl_unidades u where u.nome='FL Adega — Loja Cuiabá');
 insert into fl_locais(unidade_id,empresa_id,nome,tipo) select u.id,u.empresa_id,'Depósito Roca','deposito' from fl_unidades u
-  where u.nome='Roca Imports — Online' and not exists (select 1 from fl_locais l where l.nome='Depósito Roca');
+  where u.nome='Roca Imports — Online' and not exists (select 1 from fl_locais l where l.nome in ('Depósito Roca','Cuiabá (Roca)'));
 insert into fl_locais(unidade_id,empresa_id,nome,tipo) select u.id,u.empresa_id,'Depósito FL Adega','deposito' from fl_unidades u
   where u.nome='FL Adega — Online' and not exists (select 1 from fl_locais l where l.nome='Depósito FL Adega');
 insert into fl_locais(unidade_id,empresa_id,nome,tipo) select u.id,u.empresa_id,'Loja Cuiabá','loja' from fl_unidades u
@@ -424,7 +424,7 @@ begin
   if i.eh_servico then
     insert into fl_venda_itens_custo(item_id,custo_unit,status) values (p_item,null,'servico') on conflict (item_id) do nothing; return;
   end if;
-  c:= case when i.produto_id is null then null else fl_custo_em(i.produto_id,i.data_venda) end;
+  c:= case when i.produto_id is null then null else coalesce(fl_custo_em(i.produto_id,i.data_venda),(select custo_aquisicao from fl_produtos where id=i.produto_id and not eh_kit)) end;
   if atual.item_id is null or atual.status='ausente' then
     insert into fl_venda_itens_custo(item_id,custo_unit,status) values (p_item,c,case when c is null then 'ausente' else 'calculado' end)
     on conflict (item_id) do update set custo_unit=excluded.custo_unit,status=excluded.status,calculado_em=now();
@@ -870,7 +870,7 @@ begin
       else null end;
   end if;
   if tg_op='INSERT' then
-    new.expedicao_status:=case when new.modalidade in ('full','fba','balcao','retirada') or new.status<>'concluida' then 'nao_aplica'
+    new.expedicao_status:=case when new.modalidade is null or new.modalidade in ('full','fba','balcao','retirada') or new.status<>'concluida' then 'nao_aplica'
                                else 'a_separar' end;
   elsif new.status in ('cancelada','devolvida') and old.expedicao_status in ('a_separar','separado') then
     new.expedicao_status:='nao_aplica';

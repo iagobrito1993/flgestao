@@ -36,7 +36,7 @@ TELAS.integracoes=async function(extra){
     return;
   }
   if(abaInt==='config')return telaConfig(ab);
-  if(abaInt==='usuarios')return telaUsuarios(ab);
+  if(abaInt==='usuarios'){abaInt='ml';return ir('usuarios');}
   if(abaInt==='backup')return telaBackup(ab);
 };
 async function conectarML(id){
@@ -235,17 +235,17 @@ async function telaBackup(ab){
 // ---------- CONCILIAÇÃO E PENDÊNCIAS ----------
 const TIPOS_PEND={venda_sem_nota:'Venda sem nota',nota_sem_mov:'Nota sem movimentação',receb_divergente:'Recebimento diferente do previsto',venda_sem_custo:'Vendido sem custo',sem_vinculo:'Item sem vínculo de SKU',qtd_divergente:'Diferença de quantidade',duplicidade:'Possível duplicidade',cancel_nao_conciliado:'Cancelamento/devolução não conciliado',unidade_divergente:'Unidade de medida divergente',produto_duplicado:'Produto duplicado',custo_revisado:'Custo de venda antiga mudaria',outro:'Outro'};
 let filtroPend={status:'abertas',tipo:''};
-TELAS.conciliacao=async function(){
+TELAS.pendencias=async function(){
   const ps=await tudo(()=>sb.from('fl_pendencias').select('*').order('id',{ascending:false}));
   const l=ps.filter(p=>(filtroPend.status==='todas'||(filtroPend.status==='abertas'?['aberta','em_analise'].includes(p.status):p.status===filtroPend.status))&&(!filtroPend.tipo||p.tipo===filtroPend.tipo));
   const cont=agrupar(ps.filter(p=>['aberta','em_analise'].includes(p.status)),p=>p.tipo);
   $('conteudo').innerHTML=`<div class="barra-acoes"><button class="pri" id="gp">Atualizar divergências</button><span class="mut peq" style="align-self:center">Cruza vendas, pedidos, notas, recebimentos e estoque. Rodar de novo não duplica pendências.</span></div>
-  <div class="kpis">${Object.entries(TIPOS_PEND).filter(([k])=>cont[k]).map(([k,n])=>`<div class="kpi ${filtroPend.tipo===k?'alerta':''}" onclick="filtroPend.tipo=filtroPend.tipo==='${k}'?'':'${k}';ir('conciliacao')"><div class="l">${n}</div><div class="v">${nf(cont[k].length)}</div><div class="s">${brl(soma(cont[k],p=>Math.abs(+p.valor||0)))}</div></div>`).join('')||'<div class="mut">Nenhuma pendência aberta.</div>'}</div>
-  <div class="filtros"><div><label>Status</label><select onchange="filtroPend.status=this.value;ir('conciliacao')">${opcoes([{id:'abertas',nome:'Abertas e em análise'},{id:'resolvida',nome:'Resolvidas'},{id:'ignorada',nome:'Ignoradas'},{id:'todas',nome:'Todas'}],filtroPend.status,null)}</select></div>
-   <div><label>Tipo</label><select onchange="filtroPend.tipo=this.value;ir('conciliacao')">${opcoes(Object.entries(TIPOS_PEND).map(([id,nome])=>({id,nome})),filtroPend.tipo,'Todos')}</select></div></div>
+  <div class="kpis">${Object.entries(TIPOS_PEND).filter(([k])=>cont[k]).map(([k,n])=>`<div class="kpi ${filtroPend.tipo===k?'alerta':''}" onclick="filtroPend.tipo=filtroPend.tipo==='${k}'?'':'${k}';ir('pendencias')"><div class="l">${n}</div><div class="v">${nf(cont[k].length)}</div><div class="s">${brl(soma(cont[k],p=>Math.abs(+p.valor||0)))}</div></div>`).join('')||'<div class="mut">Nenhuma pendência aberta.</div>'}</div>
+  <div class="filtros"><div><label>Status</label><select onchange="filtroPend.status=this.value;ir('pendencias')">${opcoes([{id:'abertas',nome:'Abertas e em análise'},{id:'resolvida',nome:'Resolvidas'},{id:'ignorada',nome:'Ignoradas'},{id:'todas',nome:'Todas'}],filtroPend.status,null)}</select></div>
+   <div><label>Tipo</label><select onchange="filtroPend.tipo=this.value;ir('pendencias')">${opcoes(Object.entries(TIPOS_PEND).map(([id,nome])=>({id,nome})),filtroPend.tipo,'Todos')}</select></div></div>
   <div class="secao">${tabela([{t:'Aberta em',v:p=>fdh(p.criado_em)},{t:'Tipo',v:p=>TIPOS_PEND[p.tipo]||p.tipo},{t:'Descrição',v:p=>p.descricao},{t:'Valor',v:p=>p.valor==null?null:+p.valor,n:1},{t:'Responsável',v:p=>nomeUsuario(p.responsavel)||''},
     {t:'Status',v:p=>p.status,h:p=>`<span class="tag ${p.status==='resolvida'?'v':p.status==='aberta'?'a':''}">${p.status.replace('_',' ')}</span>`}],l,{clique:abrirPendencia})}</div>`;
-  $('gp').onclick=async()=>{$('gp').disabled=true;try{const n=await rpc('fl_gerar_pendencias');toast(`Divergências atualizadas (${n} verificadas).`);}catch(e){toast(msgErro(e));}ir('conciliacao');};
+  $('gp').onclick=async()=>{$('gp').disabled=true;try{const n=await rpc('fl_gerar_pendencias');toast(`Divergências atualizadas (${n} verificadas).`);}catch(e){toast(msgErro(e));}ir('pendencias');};
 };
 async function abrirPendencia(p){
   const h=await q(sb.from('fl_pendencia_hist').select('*').eq('pendencia_id',p.id).order('em'));
@@ -262,5 +262,5 @@ async function abrirPendencia(p){
   <div class="erro"></div><div class="rodape"><button onclick="fechar()">Fechar</button><button class="pri" id="pd_ok">Salvar</button></div>`);
   if($('pd_ver'))$('pd_ver').onclick=()=>ver[p.entidade]();
   $('pd_ok').onclick=()=>rodar($('pd_ok'),async()=>{const s=val('pd_s');await q(sb.from('fl_pendencias').update({responsavel:val('pd_r')||null,status:s,obs:val('pd_o')||null,resolvido_em:['resolvida','ignorada'].includes(s)?new Date().toISOString():null}).eq('id',p.id));
-    await q(sb.from('fl_pendencia_hist').insert({pendencia_id:p.id,status:s,obs:val('pd_o')||null}));fechar();toast('Pendência atualizada.');if(area==='conciliacao')ir('conciliacao');});
+    await q(sb.from('fl_pendencia_hist').insert({pendencia_id:p.id,status:s,obs:val('pd_o')||null}));fechar();toast('Pendência atualizada.');if(area==='pendencias')ir('pendencias');});
 }

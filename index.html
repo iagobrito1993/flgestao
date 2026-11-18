@@ -36,6 +36,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #8a8a8a;border-color:t
 .lado nav button{display:flex;width:100%;text-align:left;background:none;border:0;color:#d4d4d4;padding:8px 10px;border-radius:8px;font-weight:500;gap:9px;align-items:center}
 .lado nav button:hover{background:#1c1c1c}
 .lado nav button.on{background:#fff;color:#0a0a0a;font-weight:600}
+.lado nav .grupo{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#8a8a8a;padding:12px 10px 4px}
 .lado nav button .n{margin-left:auto;background:#b42318;color:#fff;border-radius:99px;font-size:11px;padding:0 6px}
 .principal{flex:1;min-width:0}
 .topo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 22px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
@@ -111,6 +112,13 @@ table.t tfoot td{font-weight:700;border-top:2px solid var(--line)}
 .drop{border:2px dashed #c4cdc8;border-radius:12px;padding:22px;text-align:center;color:var(--mut);background:#fafbfa}
 .drop.on{border-color:var(--pri);background:var(--pril)}
 .chip-sug{display:block;width:100%;text-align:left;margin-bottom:4px}
+.op .botoes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.pdv{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px}@media (max-width:1000px){.pdv{grid-template-columns:1fr}}
+.formas{display:flex;gap:8px;flex-wrap:wrap}.formas button{flex:1;min-width:90px;padding:12px;font-weight:600}.formas button.on{background:#111;color:#fff;border-color:#111}
+.lista-res{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:10px}.lista-res button{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;border-bottom:1px solid #eee;border-radius:0;text-align:left;padding:9px 12px}.lista-res button:hover{background:#f4f4f4}
+.pdv-total{display:flex;justify-content:space-between;align-items:center;background:#111;color:#fff;border-radius:10px;padding:12px 16px;margin:10px 0;font-size:15px}.pdv-total b{font-size:22px}.pdv-total small{color:#bbb}
+.pdv-troco{font-size:22px;font-weight:700;padding:6px 0}
+@media print{.lado,.topo,.filtros,.rodape,.abas2,.barra-acoes,#toast{display:none!important}.ov{position:static;background:none;padding:0}.modal{box-shadow:none;max-width:none}.app>.principal{display:block}#raiz:has(.ov:not(.oculto)) .app{display:none}}
 .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
 .demo{background:#fde68a;color:#78350f;font-weight:700;padding:2px 8px;border-radius:6px;font-size:11px}
 </style>
@@ -119,6 +127,7 @@ table.t tfoot td{font-weight:700;border-top:2px solid var(--line)}
 <div id="raiz"><div class="login"><div class="logo"></div><h1>FL Gestão</h1><div class="sub">Carregando…</div></div></div>
 <div id="ov" class="ov oculto"><div id="modal" class="modal"></div></div>
 <div id="toast" class="toast oculto"></div>
+<script src="js/conc_logic.js"></script>
 <script src="js/nucleo.js"></script>
 <script src="js/painel.js"></script>
 <script src="js/estoque.js"></script>
@@ -126,6 +135,7 @@ table.t tfoot td{font-weight:700;border-top:2px solid var(--line)}
 <script src="js/financeiro.js"></script>
 <script src="js/integracoes.js"></script>
 <script src="js/fl.js"></script>
+<script src="js/operacoes.js"></script>
 <script>iniciar();</script>
 </body>
 </html>

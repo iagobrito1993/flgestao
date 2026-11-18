@@ -5,25 +5,31 @@ const SUPABASE_URL='https://rxqlkfzsvoqydqqzffih.supabase.co';
 const SUPABASE_KEY='sb_publishable__IZIszN0QheZChaDwqVA8A_vlQnP9tw';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const PAPEIS={master:'Administrador master',financeiro:'Financeiro',compras:'Compras',estoque:'Estoque',operacao:'Operação'};
+const PAPEIS={master:'Administrador',financeiro:'Financeiro',roca:'Operacional Roca Imports',pdv:'Operador de PDV FL Adega',compras:'Compras (antigo)',estoque:'Estoque (antigo)',operacao:'Operação (antiga)'};
 const LOGO_SVG=`<svg width="40" height="40" viewBox="0 0 64 64" aria-label="FL Gestão"><rect width="64" height="64" rx="14" fill="#0a0a0a"/><rect x="4.5" y="4.5" width="55" height="55" rx="10.5" fill="none" stroke="#fff" stroke-opacity=".32"/><text x="32" y="39" text-anchor="middle" font-family="'Playfair Display',Georgia,'Times New Roman',serif" font-weight="700" font-size="29" letter-spacing="-1" fill="#fff">FL</text><path d="M21 46.5h22" stroke="#fff" stroke-width="1.2" stroke-opacity=".75"/><circle cx="32" cy="46.5" r="1.6" fill="#fff"/></svg>`;
 const LOGO_GRANDE=`<svg width="72" height="72" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0a0a0a"/><rect x="4.5" y="4.5" width="55" height="55" rx="10.5" fill="none" stroke="#fff" stroke-opacity=".32"/><text x="32" y="36" text-anchor="middle" font-family="'Playfair Display',Georgia,'Times New Roman',serif" font-weight="700" font-size="27" letter-spacing="-1" fill="#fff">FL</text><path d="M20 42.5h24" stroke="#fff" stroke-width="1" stroke-opacity=".7"/><circle cx="32" cy="42.5" r="1.4" fill="#fff"/><text x="32" y="52" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="5" letter-spacing="2.2" fill="#fff" fill-opacity=".85">GESTÃO</text></svg>`;
-// [id, rótulo, papéis que veem (vazio = todos)]
+// [id, rótulo, papéis que veem ('__' = só administrador), grupo, regra extra, oculto do menu]
+const OPS=p=>p&&(p.operacoes||[]);
 const AREAS=[
- ['visao','Visão geral',['financeiro','compras','operacao']],
- ['caixa','Caixa da loja (Cuiabá)',['operacao','financeiro']],
- ['expedicao','Expedição',['operacao','estoque']],
- ['produtos','Produtos e SKUs',[]],
- ['estoque','Estoque e movimentações',[]],
- ['nfe','Notas fiscais de entrada',['financeiro','compras']],
- ['nfs','Notas fiscais de saída',['financeiro','compras','operacao']],
- ['compras','Compras e recebimentos',['compras','estoque','financeiro']],
- ['vendas','Vendas e marketplaces',['financeiro','operacao']],
- ['custos','Custos e margens',['financeiro','compras']],
- ['financeiro','Financeiro e fluxo de caixa',['financeiro']],
- ['conciliacao','Conciliação e pendências',[]],
- ['relatorios','Relatórios',['financeiro','compras']],
- ['integracoes','Integrações e configurações',[]],
+ ['inicio','Início',[],''],
+ ['roca','Estoque, recebimentos e remessas',['roca','estoque','compras'],'Roca Imports'],
+ ['pdv','Abrir PDV',['pdv','operacao'],'FL Adega'],
+ ['fechamento','Fechamento de caixa',['pdv','operacao','financeiro'],'FL Adega',p=>p.papel!=='financeiro'||OPS(p).includes('adega')],
+ ['conc','Conciliação',['financeiro'],'Financeiro',p=>p.papel!=='financeiro'||OPS(p).length>0],
+ ['usuarios','Usuários e permissões',['__'],'Administração'],
+ ['visao','Visão geral',['__'],'Administração'],
+ ['produtos','Cadastro mestre de produtos',['compras','estoque'],'Administração'],
+ ['estoque','Estoque geral',['compras','estoque'],'Administração'],
+ ['nfe','Notas fiscais de entrada',['compras'],'Administração'],
+ ['nfs','Notas fiscais de saída',['operacao'],'Administração'],
+ ['compras','Recebimento por nota fiscal',['compras','estoque'],'Administração'],
+ ['expedicao','Expedição',['operacao','estoque'],'Administração'],
+ ['custos','Custos e margens',['compras'],'Administração'],
+ ['financeiro','Financeiro e fluxo de caixa',['__'],'Administração'],
+ ['pendencias','Pendências',['__'],'Administração'],
+ ['relatorios','Relatórios',['__'],'Administração'],
+ ['integracoes','Integrações e configurações',['__'],'Administração'],
+ ['vendas','Histórico de vendas',['financeiro'],'Financeiro',null,true],
 ];
 let sessao=null,perfil=null,area=null,modoLogin='entrar';
 const REF={empresas:[],unidades:[],locais:[],produtos:[],codigos:[],contasML:[],canalContas:[],config:{},perfis:[],contasFin:[],kits:[]};
@@ -142,7 +148,7 @@ async function carregarPerfil(){
   if(!perfil||!perfil.papel||!perfil.ativo)return telaPendente();
   await carregarRef();
   const h=location.hash.replace('#','').split('?')[0];
-  area=areasDoPapel().find(a=>a[0]===h)?h:(area||areasDoPapel()[0][0]);
+  area=h&&AREAS.find(a=>a[0]===h)?h:(area||'inicio');
   montar();
 }
 async function carregarRef(){
@@ -157,24 +163,32 @@ async function carregarRef(){
 }
 
 // ---------- navegação ----------
-function areasDoPapel(){return AREAS.filter(a=>master()||!a[2].length||a[2].includes(papel()));}
+function podeArea(a){if(!a)return false;if(master())return true;if(a[2].length&&!a[2].includes(papel()))return false;return !a[4]||a[4](perfil);}
+function areasDoPapel(){return AREAS.filter(a=>podeArea(a));}
 function montar(){
   $('raiz').innerHTML=`<div class="app"><aside class="lado" id="lado"><div class="marca"><div class="logo">${LOGO_SVG}</div><div><b class="marca-t">FL Gestão</b><small>Roca Imports · FL Adega</small></div></div>
    <nav id="nav"></nav></aside>
    <div class="principal"><div class="topo"><div style="display:flex;gap:10px;align-items:center"><button class="menu-mob sm" onclick="$('lado').classList.toggle('aberto')">☰</button><h1 id="titulo"></h1></div>
-   <div class="quem"><span>${esc(perfil.nome||perfil.email)} · ${PAPEIS[perfil.papel]}</span><button class="sm" onclick="sb.auth.signOut()">Sair</button></div></div>
+   <div class="quem"><span>${esc(perfil.nome||perfil.email)} · ${PAPEIS[perfil.papel]}</span><button class="sm" onclick="modalSenha()">Minha senha</button><button class="sm" onclick="sb.auth.signOut()">Sair</button></div></div>
    <div class="conteudo" id="conteudo"></div></div></div>`;
   ir(area);
 }
 async function contarPendencias(){try{const {count}=await sb.from('fl_pendencias').select('id',{count:'exact',head:true}).in('status',['aberta','em_analise']);return count||0;}catch(e){return 0;}}
 async function ir(a,extra){
+  if(a==='caixa')a='pdv';if(a==='conciliacao')a='pendencias';
+  if(!AREAS.find(x=>x[0]===a))a='inicio';
   area=a;history.replaceState(null,'','#'+a);
-  const np=await contarPendencias();
-  $('nav').innerHTML=areasDoPapel().map(([id,nome])=>`<button class="${id===a?'on':''}" onclick="ir('${id}');$('lado').classList.remove('aberto')">${esc(nome)}${id==='conciliacao'&&np?`<span class="n">${np}</span>`:''}</button>`).join('');
-  $('titulo').textContent=AREAS.find(x=>x[0]===a)[1];
+  let grupo=null;
+  $('nav').innerHTML=areasDoPapel().filter(x=>!x[5]).map(([id,nome,,g])=>{const cab=g!==grupo?(grupo=g,g?`<div class="grupo">${esc(g)}</div>`:''):'';
+    return cab+`<button class="${id===a?'on':''}" onclick="ir('${id}');$('lado').classList.remove('aberto')">${esc(nome)}</button>`;}).join('');
+  const def=AREAS.find(x=>x[0]===a);
+  $('titulo').textContent=a==='pdv'?'FL Adega — PDV':a==='roca'?'Roca Imports':def[1];
+  if(!podeArea(def)){$('conteudo').innerHTML=bloqueado();return;}
   $('conteudo').innerHTML='<div class="vazio">Carregando…</div>';
-  try{await TELAS[a](extra);}catch(e){console.error(e);$('conteudo').innerHTML=`<div class="aviso">Não foi possível carregar: ${esc(msgErro(e))}</div>`;}
+  try{await TELAS[a](extra);}catch(e){console.error(e);$('conteudo').innerHTML=/Sem permissão/i.test(e&&e.message||'')?bloqueado():`<div class="aviso">Não foi possível carregar: ${esc(msgErro(e))}</div>`;}
 }
+function bloqueado(){return `<div class="secao" style="max-width:560px"><h2>Acesso bloqueado</h2><div class="mut">Seu perfil (${esc(PAPEIS[papel()]||'sem perfil')}) não tem acesso a esta página. Se precisar, peça liberação ao administrador.</div>
+  <div class="rodape" style="justify-content:flex-start"><button class="pri" onclick="ir('inicio')">Voltar ao início</button></div></div>`;}
 const TELAS={};
 
 // ---------- filtros globais ----------
@@ -223,3 +237,8 @@ function tagModal(m){return m?`<span class="tag ${m==='flex'||m==='turbo'?'a':m=
 function nomeConta(v){if(v.ml_conta_id)return 'ML · '+contaML(v.ml_conta_id).apelido;if(v.canal_conta_id){const c=REF.canalContas.find(x=>x.id==v.canal_conta_id);return (CANAL[v.canal]||'')+' · '+(c?c.apelido:'');}return (CANAL[v.canal]||'')+' · '+empresa(v.empresa_id).nome;}
 const STATUS_V={concluida:['Concluída','v'],cancelada:['Cancelada','r'],devolvida:['Devolvida','r'],devolvida_parcial:['Devolução parcial','a'],pendente:['Pendente','a']};
 function tagStatus(s){const x=STATUS_V[s]||[s,''];return `<span class="tag ${x[1]}">${esc(x[0])}</span>`;}
+
+function modalSenha(){abrir(`<h2>Definir nova senha</h2><div class="campo"><label>Nova senha (mín. 8 caracteres)</label><input id="ms_s" type="password" minlength="8" autocomplete="new-password"></div><div class="erro"></div>
+  <div class="rodape"><button onclick="fechar()">Cancelar</button><button class="pri" id="ms_ok">Salvar</button></div>`);
+  $('ms_ok').onclick=()=>rodar($('ms_ok'),async()=>{const v=$('ms_s').value;if(v.length<8)throw new Error('A senha precisa ter ao menos 8 caracteres.');const {error}=await sb.auth.updateUser({password:v});if(error)throw error;fechar();toast('Senha salva.');});}
+function novaChave(){return (crypto.randomUUID?crypto.randomUUID():'k'+Date.now().toString(36)+Math.random().toString(36).slice(2));}
